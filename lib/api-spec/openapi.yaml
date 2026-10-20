@@ -1,0 +1,258 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: admin
+    description: Administrator sign-in and protected store management
+  - name: storefront
+    description: Public storefront content
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /admin/captcha:
+    get:
+      operationId: getAdminCaptcha
+      tags: [admin]
+      summary: Create an administrator sign-in challenge
+      responses:
+        "200":
+          description: CAPTCHA challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCaptchaChallenge"
+        "429":
+          description: Too many challenge requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /admin/session:
+    get:
+      operationId: getAdminSession
+      tags: [admin]
+      summary: Check the current administrator session
+      responses:
+        "200":
+          description: Current session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSessionState"
+  /admin/login:
+    post:
+      operationId: loginAdmin
+      tags: [admin]
+      summary: Sign in an administrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResult"
+        "401":
+          description: Credentials or challenge were not accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResult"
+        "429":
+          description: Too many sign-in attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResult"
+        "503":
+          description: Administrator credentials are not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResult"
+  /admin/logout:
+    post:
+      operationId: logoutAdmin
+      tags: [admin]
+      summary: End the current administrator session
+      responses:
+        "200":
+          description: Signed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAuthResult"
+  /admin/store-state:
+    get:
+      operationId: getAdminStoreState
+      tags: [admin]
+      summary: Read saved administrator-managed store data
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: Saved store state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStoreState"
+        "401":
+          description: Administrator sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: saveAdminStoreState
+      tags: [admin]
+      summary: Save administrator-managed store data
+      security:
+        - adminSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminStoreStateInput"
+      responses:
+        "200":
+          description: Saved store state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStoreState"
+        "401":
+          description: Administrator sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /storefront:
+    get:
+      operationId: getStorefrontState
+      tags: [storefront]
+      summary: Get public product and website content
+      responses:
+        "200":
+          description: Public storefront content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorefrontState"
+components:
+  securitySchemes:
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: ninja_admin_session
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+    AdminCaptchaChallenge:
+      type: object
+      properties:
+        id:
+          type: string
+        imageDataUrl:
+          type: string
+        expiresInSeconds:
+          type: integer
+      required: [id, imageDataUrl, expiresInSeconds]
+    AdminSessionState:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        email:
+          type: string
+      required: [authenticated]
+    AdminLoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+        captchaId:
+          type: string
+        captchaAnswer:
+          type: string
+          minLength: 1
+      required: [email, password, captchaId, captchaAnswer]
+    AdminAuthResult:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        email:
+          type: string
+        message:
+          type: string
+        retryAfterSeconds:
+          type: integer
+      required: [authenticated]
+    AdminStoreState:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+        updatedAt:
+          type: [string, "null"]
+          format: date-time
+      required: [data, updatedAt]
+    AdminStoreStateInput:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+      required: [data]
+    StorefrontState:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+        updatedAt:
+          type: [string, "null"]
+          format: date-time
+      required: [data, updatedAt]
+
