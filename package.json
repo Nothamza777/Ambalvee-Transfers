@@ -1,0 +1,25 @@
+{
+  "name": "ambalvee-transfers",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "artifacts/api-server",
+    "artifacts/ninja-transfers",
+    "lib/api-client-react",
+    "lib/api-spec",
+    "lib/api-zod",
+    "lib/db"
+  ],
+  "scripts": {
+    "build": "npm run typecheck && npm run build --workspaces --if-present",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "npm run typecheck:libs && npm run typecheck --workspace=@workspace/api-server && npm run typecheck --workspace=@workspace/ninja-transfers",
+    "dev:api": "npm run dev --workspace=@workspace/api-server",
+    "dev:storefront": "npm run dev --workspace=@workspace/ninja-transfers",
+    "db:push": "npm run push --workspace=@workspace/db"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6",
+    "typescript": "~5.9.3"
+  }
+}
